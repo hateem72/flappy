@@ -325,15 +325,29 @@ const FlappyBirdGame = () => {
   // Background music loop
   useEffect(() => {
     if (gameStarted && !gameOver && backgroundMusicRef.current) {
-      const playPromise = backgroundMusicRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.log("Audio play prevented:", error);
-        });
-      }
+      // Reset and configure audio before playing
+      backgroundMusicRef.current.currentTime = 0;
       backgroundMusicRef.current.loop = true;
       backgroundMusicRef.current.volume = 0.5;
-    } else if (backgroundMusicRef.current) {
+      
+      // Try to play with better error handling
+      const playPromise = backgroundMusicRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("Background music started successfully");
+          })
+          .catch(error => {
+            console.log("Audio play prevented:", error);
+            // Try again after a short delay
+            setTimeout(() => {
+              if (backgroundMusicRef.current && gameStarted && !gameOver) {
+                backgroundMusicRef.current.play().catch(() => {});
+              }
+            }, 100);
+          });
+      }
+    } else if (backgroundMusicRef.current && !gameStarted) {
       backgroundMusicRef.current.pause();
       backgroundMusicRef.current.currentTime = 0;
     }
@@ -492,10 +506,16 @@ const FlappyBirdGame = () => {
             touchAction: 'none',
             userSelect: 'none'
           }}
-          onClick={handleJump}
+          onClick={(e) => {
+            if (gameStarted && !gameOver) {
+              handleJump();
+            }
+          }}
           onTouchStart={(e) => {
             e.preventDefault();
-            handleJump();
+            if (gameStarted && !gameOver) {
+              handleJump();
+            }
           }}
         >
           {/* Lives Display */}
@@ -613,6 +633,8 @@ const FlappyBirdGame = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
               onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
             >
               <div className="text-center text-white w-full max-w-md">
                 <motion.h1 
@@ -642,7 +664,21 @@ const FlappyBirdGame = () => {
                     <motion.button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         setGameStarted(true);
+                        // Enable audio on user interaction
+                        if (backgroundMusicRef.current) {
+                          backgroundMusicRef.current.load();
+                        }
+                      }}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setGameStarted(true);
+                        // Enable audio on user interaction
+                        if (backgroundMusicRef.current) {
+                          backgroundMusicRef.current.load();
+                        }
                       }}
                       className="relative bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-black py-4 px-12 rounded-2xl mb-4 text-2xl shadow-2xl border-4 border-white"
                       animate={{
