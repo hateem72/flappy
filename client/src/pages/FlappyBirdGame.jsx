@@ -83,25 +83,38 @@ const FlappyBirdGame = () => {
   // Preload all assets
   useEffect(() => {
     const preloadAssets = async () => {
-      setLoadingMessage('🌐 Waking up server...');
+      const messages = [
+        '🔄 Connecting to server...',
+        '⏳ Server is busy, please wait...',
+        '🌐 Trying to reconnect you...',
+        '📡 Almost there, hang tight...',
+        '✨ Getting everything ready for you...',
+      ];
+
+      let messageIndex = 0;
+      setLoadingMessage(messages[0]);
       setLoadingProgress(5);
+
+      // Change messages periodically
+      const messageInterval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % messages.length;
+        setLoadingMessage(messages[messageIndex]);
+      }, 2000);
 
       // Simulate server wake-up time
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setLoadingMessage('📦 Loading game assets...');
-      setLoadingProgress(10);
+      setLoadingProgress(20);
 
       const totalAssets = BIRD_SCHEMA.length + VIDEO_SCHEMA.length + 4; // +4 for audios and result video
       let loadedAssets = 0;
 
       const updateProgress = () => {
         loadedAssets++;
-        const progress = 10 + (loadedAssets / totalAssets) * 85;
+        const progress = 20 + (loadedAssets / totalAssets) * 75;
         setLoadingProgress(Math.min(progress, 95));
       };
 
       // Preload bird images
-      setLoadingMessage('🐦 Loading characters...');
       const birdPromises = BIRD_SCHEMA.map(bird => {
         return new Promise((resolve) => {
           const img = new Image();
@@ -120,7 +133,6 @@ const FlappyBirdGame = () => {
       await Promise.all(birdPromises);
 
       // Preload videos
-      setLoadingMessage('🎬 Loading building videos...');
       const videoPromises = VIDEO_SCHEMA.map(video => {
         return new Promise((resolve) => {
           const vid = document.createElement('video');
@@ -140,7 +152,6 @@ const FlappyBirdGame = () => {
       await Promise.all(videoPromises);
 
       // Preload result video
-      setLoadingMessage('🎥 Loading result video...');
       await new Promise((resolve) => {
         const vid = document.createElement('video');
         vid.onloadeddata = () => {
@@ -156,7 +167,6 @@ const FlappyBirdGame = () => {
       });
 
       // Preload audio files
-      setLoadingMessage('🎵 Loading audio files...');
       const audioPromises = Object.values(AUDIO_SCHEMA).map(audioSrc => {
         return new Promise((resolve) => {
           const audio = new Audio();
@@ -175,8 +185,10 @@ const FlappyBirdGame = () => {
 
       await Promise.all(audioPromises);
 
+      clearInterval(messageInterval);
+      
       // Final loading message
-      setLoadingMessage('✅ Ready to play!');
+      setLoadingMessage('✅ Connected! Ready to play!');
       setLoadingProgress(100);
       
       // Small delay before hiding loader
@@ -444,9 +456,9 @@ const FlappyBirdGame = () => {
           </p>
 
           <div className="bg-white bg-opacity-20 rounded-xl p-5 backdrop-blur-md shadow-xl border border-white border-opacity-30">
-            <p className="text-base text-white font-semibold mb-2">⏳ Starting server...</p>
-            <p className="text-sm text-white opacity-90">This may take 4-5 seconds</p>
-            <p className="text-sm text-white opacity-90 mt-1">Loading all game assets...</p>
+            <p className="text-base text-white font-semibold mb-2">⏳ Please wait...</p>
+            <p className="text-sm text-white opacity-90">Server is engaged with other users</p>
+            <p className="text-sm text-white opacity-90 mt-1">We'll connect you shortly!</p>
           </div>
 
           <motion.div
@@ -600,6 +612,7 @@ const FlappyBirdGame = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center text-white w-full max-w-md">
                 <motion.h1 
@@ -629,7 +642,7 @@ const FlappyBirdGame = () => {
                     <motion.button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleJump();
+                        setGameStarted(true);
                       }}
                       className="relative bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-black py-4 px-12 rounded-2xl mb-4 text-2xl shadow-2xl border-4 border-white"
                       animate={{
